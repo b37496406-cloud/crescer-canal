@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crescer Canal - OFICIAL 🚀</title>
+    
+    <!-- Lendo o arquivo que você criou na pasta -->
+    <script src="supabase.js"></script>
+    
+    <style>
+        :root { --bg-lilas: #e0d4f7; --header-dark: #1a1a2e; --btn-verde: #28a745; --btn-azul: #3498db; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-lilas); margin: 0; padding: 0; }
+        header { background: var(--header-dark); color: white; padding: 30px; text-align: center; border-bottom: 4px solid var(--btn-verde); }
+        .container { max-width: 500px; margin: 20px auto; padding: 0 20px; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.1); text-align: center; }
+        input { width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        .btn-green { background: var(--btn-verde); color: white; border: none; padding: 15px; width: 100%; border-radius: 6px; cursor: pointer; font-weight: bold; text-transform: uppercase; }
+        .btn-green:disabled { background: #ccc; cursor: not-allowed; }
+        .hidden { display: none; }
+        .toggle-link { color: var(--btn-azul); font-weight: bold; cursor: pointer; text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+<header><h1>Crescer Canal</h1></header>
+
+<div id="auth-screen" class="container">
+    <div class="card">
+        <h2 id="auth-title">Entrar</h2>
+        <input type="text" id="nick" placeholder="Seu Nickname">
+        <input type="password" id="pass" placeholder="Sua Senha (mín. 6 números)">
+        <button id="auth-button" class="btn-green" onclick="fazerTudo()">ENTRAR NO SITE</button>
+        <p style="margin-top: 15px;">
+            <span id="toggle-text">Ainda não tem uma conta?</span> 
+            <span class="toggle-link" onclick="toggleAuth()">Cadastre-se</span>
+        </p>
+    </div>
+</div>
+
+<div id="main-content" class="container hidden">
+    <div class="card">
+        <h2>🚀 Bem-vindo, <span id="user-nick"></span>!</h2>
+        <p>Saldo: <b id="user-coins">0</b> pontos</p>
+        <button class="btn-green" onclick="location.reload()" style="background:#666; margin-top:10px;">SAIR</button>
+    </div>
+</div>
+
+<script>
+    const S_URL = 'https://komrnpfytcndtildvkdn.supabase.co'; 
+    const S_KEY = 'sb_publishable_PsnF7iqLRSgfGYHGrFxTfA_Cdv-_9bp';
+    let _supabase;
+    let modoCadastro = false;
+
+    // Inicializa usando o arquivo local
+    function iniciar() {
+        try {
+            if (window.supabase) {
+                _supabase = window.supabase.createClient(S_URL, S_KEY);
+            }
+        } catch (e) { console.error("Erro ao carregar"); }
+    }
+    iniciar();
+
+    function toggleAuth() {
+        modoCadastro = !modoCadastro;
+        document.getElementById('auth-title').innerText = modoCadastro ? 'Criar Conta' : 'Entrar';
+        document.getElementById('auth-button').innerText = modoCadastro ? 'CADASTRAR AGORA' : 'ENTRAR NO SITE';
+        document.getElementById('toggle-text').innerText = modoCadastro ? 'Já tem uma conta?' : 'Ainda não tem uma conta?';
+    }
+
+    async function fazerTudo() {
+        if (!_supabase) iniciar();
+        if (!_supabase) {
+            alert("O arquivo supabase.js não foi encontrado na pasta!");
+            return;
+        }
+
+        const nick = document.getElementById('nick').value.trim();
+        const pass = document.getElementById('pass').value;
+        const btn = document.getElementById('auth-button');
+
+        if (!nick || pass.length < 6) {
+            alert("Preencha o Nick e a Senha (mín. 6 dígitos)");
+            return;
+        }
+
+        btn.innerText = "PROCESSANDO...";
+        btn.disabled = true;
+
+        const email = nick.toLowerCase().replace(/\s/g, '') + "@crescer.com";
+
+        try {
+            if (modoCadastro) {
+                const { error } = await _supabase.auth.signUp({
+                    email: email, password: pass, options: { data: { nick: nick } }
+                });
+                if (error) throw error;
+                alert("CONTA CRIADA! Clique em ENTRAR.");
+                location.reload();
+            } else {
+                const { data, error } = await _supabase.auth.signInWithPassword({
+                    email: email, password: pass
+                });
+                if (error) throw error;
+                if (data.user) {
+                    const { data: profile } = await _supabase.from('profiles').select('*').eq('id', data.user.id).single();
+                    if (profile) {
+                        document.getElementById('user-nick').innerText = profile.nick;
+                        document.getElementById('user-coins').innerText = profile.coins;
+                        document.getElementById('auth-screen').classList.add('hidden');
+                        document.getElementById('main-content').classList.remove('hidden');
+                    }
+                }
+            }
+        } catch (e) {
+            alert("ERRO: " + e.message);
+            btn.disabled = false;
+            btn.innerText = modoCadastro ? "CADASTRAR AGORA" : "ENTRAR NO SITE";
+        }
+    }
+</script>
+</body>
+</html>
